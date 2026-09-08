@@ -1,0 +1,3 @@
+# EasierClass
+
+New project.
