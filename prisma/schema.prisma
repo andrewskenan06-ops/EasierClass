@@ -13,21 +13,18 @@ model User {
   name      String?
   createdAt DateTime @default(now())
 
-  feeds Feed[]
+  feed Feed?
 }
 
 model Feed {
   id        String    @id @default(cuid())
   icalUrl   String
-  label     String
-  userId    String
+  userId    String    @unique
   user      User      @relation(fields: [userId], references: [id])
   lastSync  DateTime?
   createdAt DateTime  @default(now())
 
   assignments Assignment[]
-
-  @@unique([userId, icalUrl])
 }
 
 model Assignment {
