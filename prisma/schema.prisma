@@ -13,7 +13,19 @@ model User {
   name      String?
   createdAt DateTime @default(now())
 
-  feed Feed?
+  feed    Feed?
+  courses Course[]
+}
+
+model Course {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  name      String
+  keywords  String[] @default([])
+  createdAt DateTime @default(now())
+
+  assignments Assignment[]
 }
 
 model Feed {
@@ -28,15 +40,18 @@ model Feed {
 }
 
 model Assignment {
-  id        String    @id @default(cuid())
-  feedId    String
-  feed      Feed      @relation(fields: [feedId], references: [id])
-  uid       String
-  title     String
-  dueAt     DateTime?
-  url       String?
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  id            String    @id @default(cuid())
+  feedId        String
+  feed          Feed      @relation(fields: [feedId], references: [id])
+  uid           String
+  title         String
+  dueAt         DateTime?
+  url           String?
+  courseId      String?
+  course        Course?   @relation(fields: [courseId], references: [id])
+  courseManual  Boolean   @default(false)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 
   @@unique([feedId, uid])
 }
