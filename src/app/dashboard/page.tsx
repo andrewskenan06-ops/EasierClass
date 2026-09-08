@@ -4,6 +4,8 @@ import { getUserId } from "@/lib/session";
 import SyncButton from "./SyncButton";
 import CourseManager from "./CourseManager";
 import CourseSelect from "./CourseSelect";
+import ScheduleManager from "./ScheduleManager";
+import TodayPanel from "./TodayPanel";
 
 export const dynamic = "force-dynamic";
 
@@ -11,15 +13,21 @@ export default async function Dashboard() {
   const userId = await getUserId();
   if (!userId) redirect("/");
 
-  const [feed, courses] = await Promise.all([
+  const [feed, courses, schedule] = await Promise.all([
     prisma.feed.findUnique({
       where: { userId },
       include: { assignments: { orderBy: { dueAt: "asc" } } },
     }),
     prisma.course.findMany({ where: { userId }, orderBy: { createdAt: "asc" } }),
+    prisma.classSchedule.findMany({
+      where: { course: { userId } },
+      include: { course: { select: { id: true, name: true } } },
+    }),
   ]);
 
   if (!feed) redirect("/");
+
+  const todaySchedule = schedule.filter((s) => s.dayOfWeek === new Date().getDay());
 
   const now = new Date();
   const upcoming = feed.assignments.filter((a) => !a.dueAt || a.dueAt >= now);
@@ -59,15 +67,23 @@ export default async function Dashboard() {
           </p>
         )}
 
-        <CourseManager />
+        <TodayPanel todaySchedule={todaySchedule} />
+
+        <div className="flex flex-wrap gap-2">
+          <CourseManager />
+          <ScheduleManager courses={courses} />
+        </div>
 
         {upcoming.length === 0 ? (
           <p className="text-zinc-500">No upcoming assignments found in your feed.</p>
         ) : (
           <div className="flex flex-col gap-6">
+            <h2 className="text-sm font-semibold text-zinc-500 -mb-4">Due soon</h2>
             {upcomingGroups.map((group) => (
               <div key={group.name} className="flex flex-col gap-2">
-                <h2 className="text-sm font-semibold text-zinc-500">{group.name}</h2>
+                <h3 className="text-xs font-semibold uppercase tracking-wide text-zinc-400">
+                  {group.name}
+                </h3>
                 <ul className="flex flex-col gap-2">
                   {group.items.map((a) => (
                     <li

@@ -26,6 +26,18 @@ model Course {
   createdAt DateTime @default(now())
 
   assignments Assignment[]
+  schedule    ClassSchedule[]
+}
+
+model ClassSchedule {
+  id        String   @id @default(cuid())
+  courseId  String
+  course    Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  dayOfWeek Int      // 0 = Sunday .. 6 = Saturday
+  startTime String   // "HH:mm", 24-hour, local to the user
+  endTime   String   // "HH:mm", 24-hour, local to the user
+  location  String?
+  createdAt DateTime @default(now())
 }
 
 model Feed {
