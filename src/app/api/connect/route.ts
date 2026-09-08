@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { setUserId } from "@/lib/session";
+import { getUserId, setUserId } from "@/lib/session";
 import { syncFeed } from "@/lib/syncFeed";
 
 export async function POST(req: NextRequest) {
-  const { email, icalUrl } = await req.json();
+  const { email, label, icalUrl } = await req.json();
 
-  if (!email || typeof email !== "string") {
-    return NextResponse.json({ error: "Email is required" }, { status: 400 });
+  if (!label || typeof label !== "string") {
+    return NextResponse.json({ error: "A course name is required" }, { status: 400 });
   }
   if (!icalUrl || typeof icalUrl !== "string" || !icalUrl.startsWith("http")) {
     return NextResponse.json(
@@ -16,16 +16,25 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const user = await prisma.user.upsert({
-    where: { email },
-    update: {},
-    create: { email },
-  });
+  let userId = await getUserId();
+
+  if (!userId) {
+    if (!email || typeof email !== "string") {
+      return NextResponse.json({ error: "Email is required" }, { status: 400 });
+    }
+    const user = await prisma.user.upsert({
+      where: { email },
+      update: {},
+      create: { email },
+    });
+    userId = user.id;
+    await setUserId(userId);
+  }
 
   const feed = await prisma.feed.upsert({
-    where: { userId: user.id },
-    update: { icalUrl },
-    create: { userId: user.id, icalUrl },
+    where: { userId_icalUrl: { userId, icalUrl } },
+    update: { label },
+    create: { userId, icalUrl, label },
   });
 
   try {
@@ -36,8 +45,6 @@ export async function POST(req: NextRequest) {
       { status: 400 }
     );
   }
-
-  await setUserId(user.id);
 
   return NextResponse.json({ ok: true });
 }

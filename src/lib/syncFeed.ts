@@ -2,6 +2,8 @@ import ical, { VEvent } from "node-ical";
 import { prisma } from "@/lib/prisma";
 
 // Pulls the ICS feed at feed.icalUrl and upserts each VEVENT as an Assignment.
+// Note: Blackboard's per-course feed already scopes every event to one class,
+// so we don't need to parse a course name out of the title here.
 export async function syncFeed(feedId: string) {
   const feed = await prisma.feed.findUniqueOrThrow({ where: { id: feedId } });
 
@@ -15,15 +17,11 @@ export async function syncFeed(feedId: string) {
 
     const uid = event.uid ?? key;
     const title = event.summary?.toString() ?? "Untitled";
-    // Blackboard typically prefixes the course name in the summary, e.g. "CISC 3400: HW 3"
-    const [maybeCourse, ...rest] = title.split(":");
-    const courseName = rest.length > 0 ? maybeCourse.trim() : null;
 
     await prisma.assignment.upsert({
       where: { feedId_uid: { feedId, uid } },
       update: {
         title,
-        courseName,
         dueAt: event.start ?? null,
         url: (event.url as string | undefined) ?? null,
       },
@@ -31,7 +29,6 @@ export async function syncFeed(feedId: string) {
         feedId,
         uid,
         title,
-        courseName,
         dueAt: event.start ?? null,
         url: (event.url as string | undefined) ?? null,
       },

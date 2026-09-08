@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getUserId } from "@/lib/session";
 import SyncButton from "./SyncButton";
+import AddClassForm from "./AddClassForm";
 
 export const dynamic = "force-dynamic";
 
@@ -9,20 +10,31 @@ export default async function Dashboard() {
   const userId = await getUserId();
   if (!userId) redirect("/");
 
-  const feed = await prisma.feed.findUnique({
+  const feeds = await prisma.feed.findMany({
     where: { userId },
     include: {
-      assignments: {
-        orderBy: { dueAt: "asc" },
-      },
+      assignments: { orderBy: { dueAt: "asc" } },
     },
+    orderBy: { createdAt: "asc" },
   });
 
-  if (!feed) redirect("/");
+  if (feeds.length === 0) redirect("/");
 
   const now = new Date();
-  const upcoming = feed.assignments.filter((a) => !a.dueAt || a.dueAt >= now);
-  const past = feed.assignments.filter((a) => a.dueAt && a.dueAt < now);
+  const allAssignments = feeds.flatMap((feed) =>
+    feed.assignments.map((a) => ({ ...a, label: feed.label }))
+  );
+  const upcoming = allAssignments
+    .filter((a) => !a.dueAt || a.dueAt >= now)
+    .sort((a, b) => (a.dueAt?.getTime() ?? Infinity) - (b.dueAt?.getTime() ?? Infinity));
+  const past = allAssignments
+    .filter((a) => a.dueAt && a.dueAt < now)
+    .sort((a, b) => (b.dueAt?.getTime() ?? 0) - (a.dueAt?.getTime() ?? 0));
+
+  const lastSync = feeds
+    .map((f) => f.lastSync)
+    .filter((d): d is Date => d !== null)
+    .sort((a, b) => b.getTime() - a.getTime())[0];
 
   return (
     <div className="flex flex-col flex-1 bg-zinc-50 font-sans dark:bg-black">
@@ -34,14 +46,25 @@ export default async function Dashboard() {
           <SyncButton />
         </div>
 
-        {feed.lastSync && (
+        {lastSync && (
           <p className="-mt-4 text-xs text-zinc-500">
-            Last synced {feed.lastSync.toLocaleString()}
+            Last synced {lastSync.toLocaleString()}
           </p>
         )}
 
+        <div className="flex flex-wrap gap-2">
+          {feeds.map((f) => (
+            <span
+              key={f.id}
+              className="rounded-full bg-zinc-200 px-3 py-1 text-xs font-medium text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300"
+            >
+              {f.label}
+            </span>
+          ))}
+        </div>
+
         {upcoming.length === 0 ? (
-          <p className="text-zinc-500">No upcoming assignments found in your feed.</p>
+          <p className="text-zinc-500">No upcoming assignments found.</p>
         ) : (
           <ul className="flex flex-col gap-2">
             {upcoming.map((a) => (
@@ -51,8 +74,7 @@ export default async function Dashboard() {
               >
                 <span className="font-medium text-black dark:text-zinc-50">{a.title}</span>
                 <span className="text-sm text-zinc-500">
-                  {a.courseName ? `${a.courseName} · ` : ""}
-                  {a.dueAt ? a.dueAt.toLocaleString() : "No due date"}
+                  {a.label} · {a.dueAt ? a.dueAt.toLocaleString() : "No due date"}
                 </span>
               </li>
             ))}
@@ -60,7 +82,7 @@ export default async function Dashboard() {
         )}
 
         {past.length > 0 && (
-          <details className="mt-6">
+          <details className="mt-2">
             <summary className="cursor-pointer text-sm text-zinc-500">
               {past.length} past item{past.length === 1 ? "" : "s"}
             </summary>
@@ -72,14 +94,17 @@ export default async function Dashboard() {
                 >
                   <span className="font-medium text-black dark:text-zinc-50">{a.title}</span>
                   <span className="text-sm text-zinc-500">
-                    {a.courseName ? `${a.courseName} · ` : ""}
-                    {a.dueAt ? a.dueAt.toLocaleString() : "No due date"}
+                    {a.label} · {a.dueAt ? a.dueAt.toLocaleString() : "No due date"}
                   </span>
                 </li>
               ))}
             </ul>
           </details>
         )}
+
+        <hr className="my-4 border-zinc-200 dark:border-zinc-800" />
+
+        <AddClassForm />
       </main>
     </div>
   );

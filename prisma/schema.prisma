@@ -13,31 +13,33 @@ model User {
   name      String?
   createdAt DateTime @default(now())
 
-  feed Feed?
+  feeds Feed[]
 }
 
 model Feed {
-  id        String   @id @default(cuid())
+  id        String    @id @default(cuid())
   icalUrl   String
-  userId    String   @unique
-  user      User     @relation(fields: [userId], references: [id])
+  label     String
+  userId    String
+  user      User      @relation(fields: [userId], references: [id])
   lastSync  DateTime?
-  createdAt DateTime @default(now())
+  createdAt DateTime  @default(now())
 
   assignments Assignment[]
+
+  @@unique([userId, icalUrl])
 }
 
 model Assignment {
-  id         String    @id @default(cuid())
-  feedId     String
-  feed       Feed      @relation(fields: [feedId], references: [id])
-  uid        String
-  title      String
-  courseName String?
-  dueAt      DateTime?
-  url        String?
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime  @updatedAt
+  id        String    @id @default(cuid())
+  feedId    String
+  feed      Feed      @relation(fields: [feedId], references: [id])
+  uid       String
+  title     String
+  dueAt     DateTime?
+  url       String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
 
   @@unique([feedId, uid])
 }

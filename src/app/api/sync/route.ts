@@ -9,11 +9,11 @@ export async function POST() {
     return NextResponse.json({ error: "Not connected" }, { status: 401 });
   }
 
-  const feed = await prisma.feed.findUnique({ where: { userId } });
-  if (!feed) {
-    return NextResponse.json({ error: "No feed connected" }, { status: 404 });
+  const feeds = await prisma.feed.findMany({ where: { userId } });
+  let total = 0;
+  for (const feed of feeds) {
+    total += await syncFeed(feed.id);
   }
 
-  const count = await syncFeed(feed.id);
-  return NextResponse.json({ ok: true, count });
+  return NextResponse.json({ ok: true, count: total });
 }

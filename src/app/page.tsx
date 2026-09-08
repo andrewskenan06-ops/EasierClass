@@ -6,6 +6,7 @@ import { useState } from "react";
 export default function Home() {
   const router = useRouter();
   const [email, setEmail] = useState("");
+  const [label, setLabel] = useState("");
   const [icalUrl, setIcalUrl] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -18,7 +19,7 @@ export default function Home() {
     const res = await fetch("/api/connect", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, icalUrl }),
+      body: JSON.stringify({ email, label, icalUrl }),
     });
 
     setLoading(false);
@@ -40,7 +41,8 @@ export default function Home() {
             EasierClass
           </h1>
           <p className="text-zinc-600 dark:text-zinc-400">
-            One place for your Blackboard due dates. Paste your feed link below.
+            One place for your Blackboard due dates. Start by adding one class —
+            you can add more from your dashboard.
           </p>
         </div>
 
@@ -61,8 +63,23 @@ export default function Home() {
           </div>
 
           <div className="flex flex-col gap-1.5">
+            <label htmlFor="label" className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+              Class name
+            </label>
+            <input
+              id="label"
+              type="text"
+              required
+              value={label}
+              onChange={(e) => setLabel(e.target.value)}
+              placeholder="HIST 1100"
+              className="rounded-lg border border-zinc-300 bg-white px-4 py-2.5 text-black outline-none focus:border-zinc-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-white"
+            />
+          </div>
+
+          <div className="flex flex-col gap-1.5">
             <label htmlFor="icalUrl" className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
-              Blackboard iCal feed URL
+              That class's Blackboard calendar feed URL
             </label>
             <input
               id="icalUrl"
@@ -70,11 +87,12 @@ export default function Home() {
               required
               value={icalUrl}
               onChange={(e) => setIcalUrl(e.target.value)}
-              placeholder="https://blackboard.fordham.edu/webapps/blackboard/calendar/..."
+              placeholder="https://blackboard.fordham.edu/webapps/calendar/calendarFeed/..."
               className="rounded-lg border border-zinc-300 bg-white px-4 py-2.5 text-black outline-none focus:border-zinc-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-white"
             />
             <p className="text-xs text-zinc-500 dark:text-zinc-500">
-              In Blackboard: Calendar → the gear/sync icon → "Sync to Outlook or Google Calendar." Copy that link.
+              Inside that course in Blackboard: Tools → Course Calendar → the sync icon
+              → "Sync to Outlook or Google Calendar." Copy that link.
             </p>
           </div>
 
@@ -89,7 +107,7 @@ export default function Home() {
             disabled={loading}
             className="mt-2 rounded-full bg-black px-5 py-3 font-medium text-white transition-colors hover:bg-zinc-800 disabled:opacity-50 dark:bg-white dark:text-black dark:hover:bg-zinc-200"
           >
-            {loading ? "Connecting…" : "Connect Blackboard"}
+            {loading ? "Connecting…" : "Add class"}
           </button>
         </form>
       </main>
